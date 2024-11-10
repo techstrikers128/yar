@@ -1,0 +1,86 @@
+Q7. Write a program to simulate CPU Scheduling Algorithms: Priority (Non-Preemptive)
+
+
+
+
+import java.util.Scanner;
+
+public class NonPriorityScheduling {
+
+  public static void main(String[] args) {
+    System.out.println("*** Priority Scheduling (Non Preemptive) ***");
+
+    Scanner sc = new Scanner(System.in);
+    System.out.print("Enter Number of Process: ");
+    int n = sc.nextInt();
+
+    int[] process = new int[n];
+    int[] arrivalTime = new int[n];
+    int[] burstTime = new int[n];
+    int[] completionTime = new int[n];
+    int[] priority = new int[n];
+    int[] turnAroundTime = new int[n];
+    int[] waitingTime = new int[n];
+    boolean[] isCompleted = new boolean[n];
+
+    double avgWT = 0, avgTAT = 0;
+
+    for (int i = 0; i < n; i++) {
+      process[i] = i + 1;
+      System.out.print("Enter Arrival Time for process " + (i + 1) + ": ");
+      arrivalTime[i] = sc.nextInt();
+      System.out.print("Enter Burst Time for process " + (i + 1) + ": ");
+      burstTime[i] = sc.nextInt();
+      System.out.print("Enter Priority for process " + (i + 1) + ": ");
+      priority[i] = sc.nextInt();
+      System.out.println();
+    }
+
+    int currentTime = 0;
+    int completed = 0;
+
+    while (completed != n) {
+      int minPriorityIndex = -1;
+      int minPriority = Integer.MAX_VALUE;
+
+      for (int i = 0; i < n; i++) {
+        if (arrivalTime[i] <= currentTime && !isCompleted[i] && priority[i] < minPriority) {
+          minPriority = priority[i];
+          minPriorityIndex = i;
+        }
+      }
+
+      if (minPriorityIndex == -1) {
+        currentTime++;
+      } else {
+        currentTime += burstTime[minPriorityIndex];
+        completionTime[minPriorityIndex] = currentTime;
+        turnAroundTime[minPriorityIndex] = completionTime[minPriorityIndex] - arrivalTime[minPriorityIndex];
+        waitingTime[minPriorityIndex] = turnAroundTime[minPriorityIndex] - burstTime[minPriorityIndex];
+
+        avgTAT += turnAroundTime[minPriorityIndex];
+        avgWT += waitingTime[minPriorityIndex];
+
+        isCompleted[minPriorityIndex] = true;
+        completed++;
+      }
+    }
+
+    avgWT /= n;
+    avgTAT /= n;
+
+    System.out.println("\n*** Priority Scheduling (Non Preemptive) ***");
+    System.out.println("Process\tArrival Time\tBurst Time\tCompletion Time\tTurn Around Time\tWaiting Time");
+    System.out.println("--------------------------------------------------------------------------------------");
+
+    for (int i = 0; i < n; i++) {
+      System.out.println("P" + process[i] + "\t\t" + arrivalTime[i] + "ms\t\t" + burstTime[i] + "ms\t\t" +
+              completionTime[i] + "ms\t\t" + turnAroundTime[i] + "ms\t\t\t" + waitingTime[i] + "ms");
+    }
+
+    System.out.println("\nAverage Waiting Time: " + avgWT);
+    System.out.println("Average Turn Around Time: " + avgTAT);
+
+    sc.close();
+  }
+}

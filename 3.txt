@@ -1,0 +1,187 @@
+Q3. Design suitable data structures and implement Pass-I of a two-pass macro-processor.
+
+
+MACRO
+M1 &X, &Y, &A=AREG, &B=
+MOVER &A, &X
+ADD &A, ='1'
+MOVER &B, &Y
+ADD &B, ='5'
+MEND
+
+MACRO
+M2 &P, &Q, &U=CREG, &V=DREG
+MOVER &U, &P
+MOVER &V, &Q
+ADD &U, ='15'
+ADD &V, ='10'
+MEND
+START 100
+M1 10, 20, &B=CREG
+M2 100, 200, &V=AREG, &U=BREG
+END
+
+ans:
+
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+// Class representing a Macro Name Table (MNT) entry
+class MNTEntry {
+    String macroName;
+    int mdtIndex; // Starting index in MDT
+
+    public MNTEntry(String macroName, int mdtIndex) {
+        this.macroName = macroName;
+        this.mdtIndex = mdtIndex;
+    }
+}
+
+// Class representing a Macro Definition Table (MDT) entry
+class MDTEntry {
+    String definition;
+
+    public MDTEntry(String definition) {
+        this.definition = definition;
+    }
+}
+
+// Class representing a Parameter Name Table (PNT)
+class PNT {
+    Map<String, Integer> parameterMap = new HashMap<>(); // Parameter name to index
+
+    public int addParameter(String param) {
+        if (!parameterMap.containsKey(param)) {
+            parameterMap.put(param, parameterMap.size());
+        }
+        return parameterMap.get(param);
+    }
+
+    public Integer getParameterIndex(String param) {
+        return parameterMap.getOrDefault(param, -1);
+    }
+}
+
+public class MacroProcessorPass1 {
+    List<MNTEntry> MNT = new ArrayList<>();
+    List<MDTEntry> MDT = new ArrayList<>();
+    Map<String, PNT> PNTTAB = new HashMap<>();
+    boolean isMacroDefinition = false;
+    PNT currentPNT;
+    String currentMacroName;
+    int mdtIndex = 0;
+
+    public void processLine(String line) {
+        String[] tokens = line.split("\\s+");
+        
+        if (tokens[0].equals("MACRO")) {
+            // Start a new macro definition
+            isMacroDefinition = true;
+            return;
+        }
+
+        if (isMacroDefinition) {
+            if (tokens[0].equals("MEND")) {
+                // End of macro definition
+                MDT.add(new MDTEntry(line)); // Add MEND to MDT
+                isMacroDefinition = false;
+                mdtIndex++;
+                return;
+            }
+
+            // If the line is the macro header (name and parameters)
+            if (currentMacroName == null) {
+                currentMacroName = tokens[0];
+                currentPNT = new PNT();
+                MNT.add(new MNTEntry(currentMacroName, mdtIndex));
+                PNTTAB.put(currentMacroName, currentPNT);
+
+                // Process parameters
+                for (int i = 1; i < tokens.length; i++) {
+                    String param = tokens[i].replace("&", ""); // Remove '&'
+                    String[] paramParts = param.split("=");
+                    currentPNT.addParameter(paramParts[0]);
+                }
+            } else {
+                // Process macro body
+                String processedLine = processMacroBodyLine(line);
+                MDT.add(new MDTEntry(processedLine));
+                mdtIndex++;
+            }
+        }
+    }
+
+    private String processMacroBodyLine(String line) {
+        String[] tokens = line.split("\\s+");
+        StringBuilder processedLine = new StringBuilder();
+
+        for (String token : tokens) {
+            if (token.startsWith("&")) {
+                // Parameter found, replace with positional notation
+                int paramIndex = currentPNT.getParameterIndex(token.replace("&", ""));
+                if (paramIndex != -1) {
+                    processedLine.append("#").append(paramIndex);
+                } else {
+                    processedLine.append(token);
+                }
+            } else {
+                processedLine.append(token);
+            }
+            processedLine.append(" ");
+        }
+        return processedLine.toString().trim();
+    }
+
+    public void printTables() {
+        System.out.println("Macro Name Table (MNT):");
+        for (MNTEntry entry : MNT) {
+            System.out.println("Macro Name: " + entry.macroName + ", MDT Index: " + entry.mdtIndex);
+        }
+
+        System.out.println("\nMacro Definition Table (MDT):");
+        for (int i = 0; i < MDT.size(); i++) {
+            System.out.println(i + ": " + MDT.get(i).definition);
+        }
+
+        System.out.println("\nParameter Name Tables (PNTTAB):");
+        for (String macroName : PNTTAB.keySet()) {
+            System.out.println("Macro: " + macroName);
+            for (Map.Entry<String, Integer> entry : PNTTAB.get(macroName).parameterMap.entrySet()) {
+                System.out.println("Parameter: " + entry.getKey() + ", Index: " + entry.getValue());
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        MacroProcessorPass1 processor = new MacroProcessorPass1();
+        String[] input = {
+                "MACRO",
+                "M1 &X, &Y, &A=AREG, &B=",
+                "MOVER &A, &X",
+                "ADD &A, ='1'",
+                "MOVER &B, &Y",
+                "ADD &B, ='5'",
+                "MEND",
+                "MACRO",
+                "M2 &P, &Q, &U=CREG, &V=DREG",
+                "MOVER &U, &P",
+                "MOVER &V, &Q",
+                "ADD &U, ='15'",
+                "ADD &V, ='10'",
+                "MEND",
+                "START 100",
+                "M1 10, 20, &B=CREG",
+                "M2 100, 200, &V=AREG, &U=BREG",
+                "END"
+        };
+
+        for (String line : input) {
+            processor.processLine(line);
+        }
+
+        processor.printTables();
+    }
+}
