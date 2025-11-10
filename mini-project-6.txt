@@ -1,0 +1,93 @@
+#include <iostream>
+#include <pthread.h>
+#include <cstdlib>
+using namespace std;
+
+#define MAX 10  // Maximum matrix size
+
+int r1, c1, r2, c2;
+int matA[MAX][MAX];
+int matB[MAX][MAX];
+int result[MAX][MAX];
+
+// Structure to hold data for each thread
+struct ThreadData {
+    int row;
+    int col;
+};
+
+// Thread function to compute one element of the resultant matrix
+void* multiply(void* arg) {
+    ThreadData* data = (ThreadData*)arg;
+    int sum = 0;
+
+    for (int k = 0; k < c1; k++) {
+        sum += matA[data->row][k] * matB[k][data->col];
+    }
+
+    // Return the computed sum using pthread_exit
+    int* p = new int;
+    *p = sum;
+    pthread_exit(p);
+}
+
+int main() {
+    cout << "Enter rows and columns for first matrix: ";
+    cin >> r1 >> c1;
+
+    cout << "Enter rows and columns for second matrix: ";
+    cin >> r2 >> c2;
+
+    if (c1 != r2) {
+        cout << "Matrix multiplication not possible!" << endl;
+        return 0;
+    }
+
+    cout << "\nEnter elements of first matrix:\n";
+    for (int i = 0; i < r1; i++) {
+        for (int j = 0; j < c1; j++) {
+            cin >> matA[i][j];
+        }
+    }
+
+    cout << "\nEnter elements of second matrix:\n";
+    for (int i = 0; i < r2; i++) {
+        for (int j = 0; j < c2; j++) {
+            cin >> matB[i][j];
+        }
+    }
+
+    pthread_t threads[MAX][MAX];
+    ThreadData data[MAX][MAX];
+
+    // Create one thread per element in result matrix
+    for (int i = 0; i < r1; i++) {
+        for (int j = 0; j < c2; j++) {
+            data[i][j].row = i;
+            data[i][j].col = j;
+            pthread_create(&threads[i][j], NULL, multiply, &data[i][j]);
+        }
+    }
+
+    // Join threads and collect results
+    for (int i = 0; i < r1; i++) {
+        for (int j = 0; j < c2; j++) {
+            void* val;
+            pthread_join(threads[i][j], &val);
+            int* p = (int*)val;
+            result[i][j] = *p;
+            delete p;
+        }
+    }
+
+    // Display Resultant Matrix
+    cout << "\nResultant Matrix:\n";
+    for (int i = 0; i < r1; i++) {
+        for (int j = 0; j < c2; j++) {
+            cout << result[i][j] << "\t";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
